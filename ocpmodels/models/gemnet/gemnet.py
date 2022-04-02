@@ -193,7 +193,7 @@ class GemNetT(torch.nn.Module):
             efficient=True,
         )
         ### ------------------------------------------------------------------------------------- ###
-        self.me_block = MEModule(num_modules = 2, emb_size_attention = emb_size_attention) #$$$
+        self.me_block = MEModule(num_modules = 5, emb_size_attention = emb_size_attention) #$$$
        
         ### ------------------------------- Share Down Projections ------------------------------ ###
         # Share down projection across all interaction blocks
