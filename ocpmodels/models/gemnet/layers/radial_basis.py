@@ -186,21 +186,92 @@ class RadialBasis(torch.nn.Module):
         del rbf_hparams["name"]
 
         # RBFs get distances scaled to be in [0, 1]
-        if rbf_name == "gaussian":
-            self.rbf = GaussianSmearing(
-                start=0, stop=1, num_gaussians=num_radial, **rbf_hparams
-            )
-        elif rbf_name == "spherical_bessel":
-            self.rbf = SphericalBesselBasis(
-                num_radial=num_radial, cutoff=cutoff, **rbf_hparams
-            )
-        elif rbf_name == "bernstein":
-            self.rbf = BernsteinBasis(num_radial=num_radial, **rbf_hparams)
-        else:
-            raise ValueError(f"Unknown radial basis function '{rbf_name}'.")
+        
+        basis_array = ["gaussian","spherical_bessel","bernstein"]
+        self.rbf_1 = GaussianSmearing(
+            start=0, stop=1, num_gaussians=num_radial, **rbf_hparams
+        )
+        self.rbf_2 = SphericalBesselBasis(
+            num_radial=num_radial, cutoff=cutoff, **rbf_hparams
+        )
+        self.rbf_3 = BernsteinBasis(num_radial=num_radial, **rbf_hparams)
+
 
     def forward(self, d):
         d_scaled = d * self.inv_cutoff
-
         env = self.envelope(d_scaled)
-        return env[:, None] * self.rbf(d_scaled)  # (nEdges, num_radial)
+        #self.rbf = torch.cat((self.rbf_1(d_scaled), self.rbf_2(d_scaled), self.rbf_3(d_scaled)), dim=1)
+        self.rbf = self.rbf_1(d_scaled)
+        output = env[:, None] * self.rbf  # (nEdges, num_radial)
+        return output
+
+
+
+class RadialBasisWithEmb(torch.nn.Module):
+    """
+
+    Parameters
+    ----------
+    num_radial: int
+        Controls maximum frequency.
+    cutoff: float
+        Cutoff distance in Angstrom.
+    rbf: dict = {"name": "gaussian"}
+        Basis function and its hyperparameters.
+    envelope: dict = {"name": "polynomial", "exponent": 5}
+        Envelope function and its hyperparameters.
+    """
+
+    def __init__(
+        self,
+        num_radial: int,
+        cutoff: float,
+        rbf: dict = {"name": "gaussian"},
+        envelope: dict = {"name": "polynomial", "exponent": 5},
+    ):
+        super().__init__()
+        self.inv_cutoff = 1 / cutoff
+
+        env_name = envelope["name"].lower()
+        env_hparams = envelope.copy()
+        del env_hparams["name"]
+
+        if env_name == "polynomial":
+            self.envelope = PolynomialEnvelope(**env_hparams)
+        elif env_name == "exponential":
+            self.envelope = ExponentialEnvelope(**env_hparams)
+        else:
+            raise ValueError(f"Unknown envelope function '{env_name}'.")
+
+        rbf_name = rbf["name"].lower()
+        rbf_hparams = rbf.copy()
+        del rbf_hparams["name"]
+
+        # RBFs get distances scaled to be in [0, 1]
+        
+        basis_array = ["gaussian","spherical_bessel","bernstein"]
+        self.rbf_1 = GaussianSmearing(
+            start=0, stop=1, num_gaussians=num_radial, **rbf_hparams
+        )
+        self.rbf_2 = SphericalBesselBasis(
+            num_radial=num_radial, cutoff=cutoff, **rbf_hparams
+        )
+        self.rbf_3 = BernsteinBasis(num_radial=num_radial, **rbf_hparams)
+
+    def forward(self, d, emb1, emb2, emb3, idx_s, idx_t):
+
+        d_scaled = d * self.inv_cutoff
+        env = self.envelope(d_scaled)
+        emb1_s = emb1[idx_s]  # shape=(nEdges, emb_size)
+        emb1_t = emb1[idx_t]  # shape=(nEdges, emb_size)
+        self.rbf = torch.cat((self.rbf_1(d_scaled)*emb1_s, self.rbf_1(d_scaled)*emb1_t))
+        output = env[:, None] * self.rbf # (nEdges, num_radial)
+        return output
+
+    '''def forward(self, d, emb1, emb2, emb3):
+        d_scaled = d * self.inv_cutoff
+        env = self.envelope(d_scaled)
+        self.rbf = torch.cat((self.rbf_1(d_scaled), self.rbf_2(d_scaled), self.rbf_3(d_scaled)), dim=1)
+        emb_mean = torch.mean(emb, dim=0)
+        output = env[:, None] * (self.rbf * emb_mean) # (nEdges, num_radial)
+        return output'''

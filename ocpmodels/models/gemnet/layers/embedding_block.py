@@ -43,6 +43,39 @@ class AtomEmbedding(torch.nn.Module):
         return h
 
 
+class AtomGroupEmbedding(torch.nn.Module):
+    """
+    Edge embedding based on the concatenation of atom embeddings and subsequent dense layer.
+
+    Parameters
+    ----------
+        emb_size: int
+            Embedding size after the dense layer.
+        activation: str
+            Activation function used in the dense layer.
+    """
+
+    def __init__(self, emb_size):
+        super().__init__()
+        self.emb_size = emb_size
+
+        # Atom embeddings: We go up to Bi (83).
+        self.embeddings = torch.nn.Embedding(9, emb_size)
+        # init by uniform distribution
+        torch.nn.init.uniform_(
+            self.embeddings.weight, a=-np.sqrt(3), b=np.sqrt(3)
+        )
+
+    def forward(self, Z):
+        """
+        Returns
+        -------
+            h: torch.Tensor, shape=(nAtoms, emb_size)
+                Atom embeddings.
+        """
+        h = self.embeddings(Z - 1) 
+        return h
+
 class EdgeEmbedding(torch.nn.Module):
     """
     Edge embedding based on the concatenation of atom embeddings and subsequent dense layer.

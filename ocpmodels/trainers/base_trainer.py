@@ -21,6 +21,8 @@ import torch.optim as optim
 import yaml
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.utils.data import DataLoader
+from torch.utils.data import Subset
+
 from tqdm import tqdm
 
 import ocpmodels
@@ -289,6 +291,18 @@ class BaseTrainer(ABC):
                 self.val_dataset = registry.get_dataset_class(
                     self.config["task"]["dataset"]
                 )(self.config["val_dataset"])
+                print("val dataset")
+                #================
+                num_val = len(self.val_dataset)
+                indices = list(range(num_val))
+                np.random.seed(1)  
+                np.random.shuffle(indices)
+                split = 10000
+                valid_idx = indices[:split]
+                self.val_dataset = Subset(self.val_dataset, valid_idx)
+                #===============
+                print(type(self.val_dataset))
+                print(len(self.val_dataset))
                 self.val_sampler = self.get_sampler(
                     self.val_dataset,
                     self.config["optim"].get(
@@ -606,7 +620,7 @@ class BaseTrainer(ABC):
         rank = distutils.get_rank()
 
         loader = self.val_loader if split == "val" else self.test_loader
-
+        c = 0
         for i, batch in tqdm(
             enumerate(loader),
             total=len(loader),
@@ -614,6 +628,8 @@ class BaseTrainer(ABC):
             desc="device {}".format(rank),
             disable=disable_tqdm,
         ):
+            if c > 10000:
+                break
             # Forward.
             with torch.cuda.amp.autocast(enabled=self.scaler is not None):
                 out = self._forward(batch)
@@ -622,6 +638,7 @@ class BaseTrainer(ABC):
             # Compute metrics.
             metrics = self._compute_metrics(out, batch, evaluator, metrics)
             metrics = evaluator.update("loss", loss.item(), metrics)
+            c+=1
 
         aggregated_metrics = {}
         for k in metrics:
