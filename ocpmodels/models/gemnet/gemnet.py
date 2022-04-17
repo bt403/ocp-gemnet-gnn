@@ -185,6 +185,9 @@ class GemNetT(torch.nn.Module):
             radial_basis=radial_basis_cbf3,
             cbf=cbf,
             efficient=True,
+            emb_size_attention=emb_size_attention,
+            num_radial=num_radial,
+            num_modules=num_modules
         )
         ### ------------------------------------------------------------------------------------- ###
         self.me_block = MEModule(num_modules = num_modules, emb_size_attention = emb_size_attention, num_radial = num_radial) #$$$

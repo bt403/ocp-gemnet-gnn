@@ -36,12 +36,15 @@ class CircularBasisLayer(torch.nn.Module):
         radial_basis: RadialBasis,
         cbf: str,
         efficient: bool = False,
+        emb_size_attention: int =  128,
+        num_radial: int =  32,
+        num_modules: int = 3
     ):
         super().__init__()
 
         self.radial_basis = radial_basis
         self.efficient = efficient
-        self.me_block = MEModule(num_modules = 3, emb_size_attention = 128) #$$$
+        self.me_block = MEModule(num_modules = num_modules, emb_size_attention = emb_size_attention, num_radial= num_radial) #$$$
 
         cbf_name = cbf["name"].lower()
         cbf_hparams = cbf.copy()
