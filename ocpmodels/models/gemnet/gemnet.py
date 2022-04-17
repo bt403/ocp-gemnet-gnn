@@ -561,11 +561,11 @@ class GemNetT(torch.nn.Module):
 
         # Calculate triplet angles
         cosφ_cab = inner_product_normalized(V_st[id3_ca], V_st[id3_ba])
-        h_atomic_groups = self.atom_emb_attention(atomic_groups)
-        rad_cbf3, cbf3 = self.cbf_basis3(D_st, cosφ_cab, id3_ca, h_atomic_groups, idx_s, idx_t)
+        h_atomic_numbers = self.atom_emb_attention(atomic_numbers)
+        rad_cbf3, cbf3 = self.cbf_basis3(D_st, cosφ_cab, id3_ca, h_atomic_numbers, idx_s, idx_t)
         
         rbf_attn = self.radial_basis_attn(D_st) #$$$
-        me_block = self.me_block(rbf_attn, h_atomic_groups, idx_s, idx_t)
+        me_block = self.me_block(rbf_attn, h_atomic_numbers, idx_s, idx_t)
 
         # Embedding block
         h = self.atom_emb(atomic_numbers)
