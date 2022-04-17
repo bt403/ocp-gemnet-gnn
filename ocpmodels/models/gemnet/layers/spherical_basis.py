@@ -79,8 +79,9 @@ class CircularBasisLayer(torch.nn.Module):
         else:
             raise ValueError(f"Unknown cosine basis function '{cbf_name}'.")
 
-    def forward(self, D_ca, cosφ_cab, id3_ca):
+    def forward(self, D_ca, cosφ_cab, id3_ca, h_atomic_data, idx_s, idx_t):
         rbf = self.radial_basis(D_ca)  # (num_edges, num_radial)
+        rbf = self.me_block(rbf, h_atomic_data, idx_s, idx_t)
         cbf = self.cosφ_basis(cosφ_cab)  # (num_triplets, num_spherical)
 
         if not self.efficient:
