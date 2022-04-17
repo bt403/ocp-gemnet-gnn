@@ -168,7 +168,7 @@ class GemNetT(torch.nn.Module):
             envelope=envelope,
         ) #$$$
         self.radial_basis_attn = RadialBasis(
-            num_radial=emb_size_attention*2,
+            num_radial=num_radial*2,
             cutoff=cutoff,
             rbf=rbf,
             envelope=envelope,
