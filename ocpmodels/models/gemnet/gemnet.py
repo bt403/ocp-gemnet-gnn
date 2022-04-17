@@ -230,7 +230,7 @@ class GemNetT(torch.nn.Module):
         ### ------------------------------------------------------------------------------------- ###
         # Embedding block
         self.atom_emb = AtomEmbedding(emb_size_atom)
-        self.atom_emb_attention = AtomGroupEmbedding(emb_size_attention) #$$$
+        self.atom_emb_attention = AtomEmbedding(emb_size_attention) #$$$
         self.edge_emb = EdgeEmbedding(
             emb_size_atom, num_radial, emb_size_edge, activation=activation #$$$
         )
@@ -581,7 +581,7 @@ class GemNetT(torch.nn.Module):
             h_rbf = self.atom_emb_attention(atomic_numbers) #$$$
             h_rbfs.append(h_rbf) #$$$'''
         
-        h_atomic_groups = self.atom_emb_attention(atomic_groups)
+        h_atomic_groups = self.atom_emb_attention(atomic_numbers)
         #rbf = self.radial_basis_with_emb(D_st, h_rbf1, h_rbf2, h_rbf3, idx_s, idx_t) #$$$
         rbf = self.radial_basis(D_st) #$$$
         rbf_attn = self.radial_basis_attn(D_st) #$$$

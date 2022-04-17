@@ -18,7 +18,8 @@ class SlowGLU(torch.nn.Module):
         self.linear2 = torch.nn.Linear(in_size, in_size)
     
     def forward(self, X):
-        return self.linear1(X) * self.linear2(X).sigmoid()
+        X = torch.nn.ReLU()(self.linear1(X))
+        return torch.sigmoid(self.linear2(X))
 
 class MEModule(torch.nn.Module):
     """
