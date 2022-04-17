@@ -153,7 +153,7 @@ class GemNetT(torch.nn.Module):
 
         self.group_pairs = torch.tensor([[1, 1], [2, 8], [3, 1], [4, 2], [5, 3], [6, 4], [7, 5], [8, 6], [9, 7], [10, 8], [11, 1], [12, 2], [13, 3], [14, 4], [15, 5], [16, 6], [17, 7], [18, 8], [19, 1], [20, 2], [21, 9], [22, 9], [23, 9], [24, 9], [25, 9], [26, 9], [27, 9], [28, 9], [29, 9], [30, 9], [31, 3], [32, 4], [33, 5], [34, 6], [35, 7], [36, 8], [37, 1], [38, 2], [39, 9], [40, 9], [41, 9], [42, 9], [43, 9], [44, 9], [45, 9], [46, 9], [47, 9], [48, 9], [49, 3], [50, 4], [51, 5], [52, 6], [53, 7], [54, 8], [55, 1], [56, 2], [57, 9], [58, 9], [59, 9], [60, 9], [61, 9], [62, 9], [63, 9], [64, 9], [65, 9], [66, 9], [67, 9], [68, 9], [69, 9], [70, 9], [71, 9], [72, 9], [73, 9], [74, 9], [75, 9], [76, 9], [77, 9], [78, 9], [79, 9], [80, 9], [81, 3], [82, 4], [83, 5], [84, 6], [85, 7], [86, 8], [87, 1], [88, 2], [89, 9], [90, 9], [91, 9], [92, 9], [93, 9], [94, 9], [95, 9], [96, 9], [97, 9], [98, 9], [99, 9], [100, 9], [101, 9], [102, 9], [103, 9], [104, 9], [105, 9], [106, 9], [107, 9], [108, 9], [109, 9], [110, 9], [111, 9], [112, 9], [113, 3], [114, 4], [115, 5], [116, 6], [117, 7], [118, 8]], device='cuda')
 
-        emb_size_attention = 12 #$$$
+        emb_size_attention = 128 #$$$
         AutomaticFit.reset()  # make sure that queue is empty (avoid potential error)
 
         # GemNet variants
@@ -173,15 +173,8 @@ class GemNetT(torch.nn.Module):
             envelope=envelope,
         ) #$$$
 
-        '''self.radial_basis_with_emb = RadialBasisWithEmb(
-            num_radial=num_radial,
-            cutoff=cutoff,
-            rbf=rbf,
-            envelope=envelope,
-        ) #$$$'''
-
         radial_basis_cbf3 = RadialBasis(
-            num_radial=num_radial,
+            num_radial=num_radial*2,
             cutoff=cutoff,
             rbf=rbf,
             envelope=envelope,
@@ -193,7 +186,7 @@ class GemNetT(torch.nn.Module):
             efficient=True,
         )
         ### ------------------------------------------------------------------------------------- ###
-        self.me_block = MEModule(num_modules = 5, emb_size_attention = emb_size_attention) #$$$
+        self.me_block = MEModule(num_modules = 3, emb_size_attention = emb_size_attention, num_radial = num_radial) #$$$
        
         ### ------------------------------- Share Down Projections ------------------------------ ###
         # Share down projection across all interaction blocks
@@ -574,39 +567,27 @@ class GemNetT(torch.nn.Module):
 
         # Calculate triplet angles
         cosφ_cab = inner_product_normalized(V_st[id3_ca], V_st[id3_ba])
-        rad_cbf3, cbf3 = self.cbf_basis3(D_st, cosφ_cab, id3_ca)
-
-        h_rbfs = [] #$$$
-        '''for i in range(2): #$$$
-            h_rbf = self.atom_emb_attention(atomic_numbers) #$$$
-            h_rbfs.append(h_rbf) #$$$'''
+        h_atomic_groups = self.atom_emb_attention(atomic_groups)
+        rad_cbf3, cbf3 = self.cbf_basis3(D_st, cosφ_cab, id3_ca, h_atomic_groups, idx_s, idx_t)
         
-        h_atomic_groups = self.atom_emb_attention(atomic_numbers)
-        #rbf = self.radial_basis_with_emb(D_st, h_rbf1, h_rbf2, h_rbf3, idx_s, idx_t) #$$$
-        rbf = self.radial_basis(D_st) #$$$
         rbf_attn = self.radial_basis_attn(D_st) #$$$
         me_block = self.me_block(rbf_attn, h_atomic_groups, idx_s, idx_t)
-
-
 
         # Embedding block
         h = self.atom_emb(atomic_numbers)
         
 
         # (nAtoms, emb_size_atom)
-        m = self.edge_emb(h, rbf, idx_s, idx_t)  # (nEdges, emb_size_edge)
+        m = self.edge_emb(h, me_block, idx_s, idx_t)  # (nEdges, emb_size_edge)
 
-        rbf3 = self.mlp_rbf3(rbf)
+        rbf3 = self.mlp_rbf3(me_block) #$$$
         cbf3 = self.mlp_cbf3(rad_cbf3, cbf3, id3_ca, id3_ragged_idx)
         rbf_h = self.mlp_rbf_h(me_block) #$$$
-
-        #rbf_h_emb = self.mlp_rbf_h_emb(rbf_h * torch.mean(h_rbf, dim=0)) #$$$
-
-        rbf_out = self.mlp_rbf_out(rbf)
+        rbf_out = self.mlp_rbf_out(me_block)
 
         E_t, F_st = self.out_blocks[0](h, m, rbf_out, idx_t)
-        # (nAtoms, num_targets), (nEdges, num_targets)
 
+        # (nAtoms, num_targets), (nEdges, num_targets)
         for i in range(self.num_blocks):
             # Interaction block
             h, m = self.int_blocks[i](

@@ -5,44 +5,25 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 """
 
-import math
-
-import numpy as np
 import torch
-from scipy.special import binom
 
-class SlowGLU(torch.nn.Module):
-    def __init__(self, in_size):
+class GatedLayer(torch.nn.Module):
+    def __init__(self, in_size, out_size):
         super().__init__()
         self.linear1 = torch.nn.Linear(in_size, in_size)
-        self.linear2 = torch.nn.Linear(in_size, in_size)
+        self.linear2 = torch.nn.Linear(in_size, out_size)
     
     def forward(self, X):
         X = torch.nn.ReLU()(self.linear1(X))
         return torch.sigmoid(self.linear2(X))
 
 class MEModule(torch.nn.Module):
-    """
-
-    Parameters
-    ----------
-    num_radial: int
-        Controls maximum frequency.
-    cutoff: float
-        Cutoff distance in Angstrom.
-    rbf: dict = {"name": "gaussian"}
-        Basis function and its hyperparameters.
-    envelope: dict = {"name": "polynomial", "exponent": 5}
-        Envelope function and its hyperparameters.
-    """
-
     def __init__(self, 
-                num_modules = 3, emb_size_attention = 12):
+                num_modules = 3, emb_size_attention = 12, num_radial = 32):
         super().__init__()
         self.num_modules = num_modules
-        #$self.mha_layers = torch.nn.ModuleList([torch.nn.MultiheadAttention(emb_size_attention*2, 1) for _ in range(self.num_modules)])
-        self.gated_layers = torch.nn.ModuleList([SlowGLU(emb_size_attention*2) for _ in range(self.num_modules)])
-        self.linear = torch.nn.Linear(num_modules*emb_size_attention*2,128)
+        self.gated_layers = torch.nn.ModuleList([GatedLayer(emb_size_attention*2, num_radial*2) for _ in range(self.num_modules)])
+        self.linear = torch.nn.Linear(num_modules*num_radial*2,num_radial)
         
     def forward(self, rbf, h, idx_s, idx_t):
         me_blocks = []
