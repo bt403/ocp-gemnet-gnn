@@ -8,6 +8,7 @@ LICENSE file in the root directory of this source tree.
 import sympy as sym
 import torch
 from torch_geometric.nn.models.schnet import GaussianSmearing
+from ocpmodels.models.gemnet.layers.me_module import MEModule
 
 from .basis_utils import real_sph_harm
 from .radial_basis import RadialBasis
@@ -40,6 +41,7 @@ class CircularBasisLayer(torch.nn.Module):
 
         self.radial_basis = radial_basis
         self.efficient = efficient
+        self.me_block = MEModule(num_modules = 3, emb_size_attention = 128) #$$$
 
         cbf_name = cbf["name"].lower()
         cbf_hparams = cbf.copy()
