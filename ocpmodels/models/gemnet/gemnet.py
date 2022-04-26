@@ -161,12 +161,6 @@ class GemNetT(torch.nn.Module):
         self.direct_forces = direct_forces
 
         ### ---------------------------------- Basis Functions ---------------------------------- ###
-        self.radial_basis = RadialBasis(
-            num_radial=num_radial,
-            cutoff=cutoff,
-            rbf=rbf,
-            envelope=envelope,
-        ) #$$$
         self.radial_basis_attn = RadialBasis(
             num_radial=num_radial*2,
             cutoff=cutoff,
